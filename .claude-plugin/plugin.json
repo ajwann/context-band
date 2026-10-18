@@ -1,8 +1,8 @@
 {
   "name": "context-band",
   "displayName": "Context Band",
-  "version": "0.3.0",
-  "description": "Live context-window monitor above the Claude Code prompt that tells you when to compact: turns until auto-compaction, overhead and MCP cost before the first message, growth per turn, and warnings at thresholds you set. All 16 data points are configurable.",
+  "version": "0.3.1",
+  "description": "Live context-window monitor above the Claude Code prompt that tells you when to compact: turns until auto-compaction, overhead and MCP cost before the first message, growth per turn, and warnings at thresholds you set. All 16 items are configurable.",
   "author": {
     "name": "ajwann"
   },
@@ -20,6 +20,10 @@
     "monitor",
     "above-prompt"
   ],
+  "icon": "./icon.png",
+  "documentationUrl": "https://github.com/ajwann/context-band#readme",
+  "supportUrl": "https://github.com/ajwann/context-band/issues",
+  "privacyPolicyUrl": "https://github.com/ajwann/context-band/blob/main/PRIVACY.md",
   "userConfig": {
     "showBar": {
       "type": "boolean",
@@ -114,13 +118,13 @@
     "toastOnWarn": {
       "type": "boolean",
       "title": "Warning toast",
-      "description": "A one-time toast when context passes the warning threshold",
+      "description": "A toast when a turn ends having crossed the warning threshold",
       "default": true
     },
     "warnPercent": {
       "type": "number",
       "title": "Warning at percent",
-      "description": "Percent of the window at which the band turns yellow and the hint shows",
+      "description": "Percent of the window at which the percent figure turns yellow and the hint shows",
       "default": 60,
       "min": 1,
       "max": 100
@@ -128,7 +132,7 @@
     "dangerPercent": {
       "type": "number",
       "title": "Danger at percent",
-      "description": "Percent of the window at which the band turns red",
+      "description": "Percent of the window at which the percent figure turns red",
       "default": 80,
       "min": 1,
       "max": 100

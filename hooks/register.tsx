@@ -236,6 +236,16 @@ async function refresh($: EngineInterface): Promise<Snapshot | null> {
   }
 }
 
+// The /config row of one of this plugin's options. Its key is
+// `<plugin>.<field>`, and an installed plugin may be named with its
+// marketplace (`context-band@<marketplace>`), so the key is looked up.
+async function configKey($: EngineInterface, field: string): Promise<string> {
+  const rows = await $.config.list().catch(() => [])
+  const row = rows.find(({ key }) => key.startsWith('context-band') && key.endsWith(`.${field}`))
+
+  return row?.key ?? `context-band.${field}`
+}
+
 function itemsText(settings: Settings): string {
   return ITEMS.map(({ item }) => `${settings[item] ? '●' : '○'} ${item}`).join('   ')
 }
@@ -281,16 +291,17 @@ export const register: Register = (on, options) => {
     const snap = await refresh($)
     const before = startTokens
     startTokens = undefined
-    if (snap?.tokens !== undefined && before !== undefined) {
-      if (snap.tokens >= before) {
-        const delta = snap.tokens - before
-        await update($, history, list => [...list, delta].slice(-HISTORY))
-        await update($, turnCount, n => n + 1)
-      } else {
-        // The context shrank (a compaction or /clear): growth starts over.
-        await update($, history, () => [])
-        await update($, turnCount, () => 0)
+    const now = snap?.tokens
+    if (now !== undefined && before !== undefined && now < before) {
+      // The context shrank (a compaction or /clear): growth starts over.
+      await update($, history, () => [])
+      await update($, turnCount, () => 0)
+    } else {
+      // The session's first turn has no baseline, so it counts without a delta.
+      if (now !== undefined && before !== undefined) {
+        await update($, history, list => [...list, now - before].slice(-HISTORY))
       }
+      await update($, turnCount, n => n + 1)
     }
     if (snap) {
       const status = level(snap, settings)
@@ -328,7 +339,7 @@ export const register: Register = (on, options) => {
     const entry = ITEMS.find(({ item }) => item === word)
     if (entry) {
       if (value !== 'on' && value !== 'off') return { text: `Usage: /context-band ${entry.item} on|off` }
-      const { deny } = await $.config.set({ key: `context-band.${entry.field}`, value: value === 'on' })
+      const { deny } = await $.config.set({ key: await configKey($, entry.field), value: value === 'on' })
       return { text: deny ? `Could not change ${entry.item}: ${deny}` : `Context band: ${entry.item} ${value}.` }
     }
     if (word !== '' && word !== 'show' && word !== 'hide') {
