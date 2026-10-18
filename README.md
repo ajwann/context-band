@@ -1,5 +1,7 @@
 # Context Band
 
+[![Tests](https://github.com/ajwann/context-band/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/ajwann/context-band/actions/workflows/test.yml)
+
 **A live context-window monitor for Claude Code that tells you *when* to compact, not just how full you are.**
 
 Context Band sits directly above the Claude Code prompt and updates after every model request. It shows what `/context` shows (a stacked bar by category and tokens used), and it adds the numbers you need to act before quality slips: how many turns you have left before auto-compaction, what your tools and MCP servers cost before you've typed anything, how fast each turn is growing the context, and a warning at a threshold *you* choose. Every one of its 16 data points can be switched on or off.
@@ -138,6 +140,19 @@ claude plugin install context-band --marketplace ajwann/context-band
 ```
 
 It needs a Claude Code version with the plugin hooks (mod) API. It was built and tested on 2.1.302. The band appears after your first model response.
+
+## Development
+
+The tests live in `hooks/register.test.ts` and run against Claude Code's own plugin engine:
+
+```
+claude plugin validate .
+claude plugin test .
+```
+
+They cover the pure helpers (token formatting, the bar's cell split, the turns-to-compact projection, the sparkline, settings defaults), what each option shows or hides, the warning thresholds, and the live band end to end: refreshing after a turn, drawing on the terminal and desktop surfaces, yielding to surveys, hiding on command, `/context-band <item> on|off` writing the right option, the compaction readout, and wrapping on a narrow terminal. No Claude sign-in is needed.
+
+GitHub Actions runs both commands on every pull request to `main` and every push to it, on the pinned Claude Code version the plugin was built with and, as a non-blocking check, on the latest release. To type-check as well, load the plugin once (for example with `claude --plugin-dir .`) so Claude Code writes its API types into `.claude-plugin/types/`, then run `npx tsc -p .`.
 
 ## For AI agents and assistants
 

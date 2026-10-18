@@ -1,0 +1,46 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Claude Code ${{ matrix.claude-code }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The plugin hooks API is early access: the pinned version gates the PR,
+    # and the latest release is tried too so an upstream change shows up early.
+    continue-on-error: ${{ matrix.claude-code == 'latest' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        claude-code: ['2.1.302', 'latest']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Claude Code
+        run: npm install --global @anthropic-ai/claude-code@${{ matrix.claude-code }}
+
+      - name: Show version
+        run: claude --version
+
+      - name: Validate plugin
+        run: claude plugin validate .
+
+      - name: Run tests
+        run: claude plugin test .
