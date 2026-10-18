@@ -104,6 +104,6 @@ The directory validates and security-scans each commit. Before submitting or rel
 - The README is at least 40 words outside code blocks, and describes everything the plugin runs, sends or fetches.
 - `LICENSE` exists. `plugin.json` has `name`, `description`, `author` and a raised `version`, plus `icon`, `documentationUrl`, `supportUrl` and `privacyPolicyUrl` as `https://` URLs that resolve.
 - `PRIVACY.md` still matches what the plugin does.
-- A fresh install works in an isolated home: `env -i PATH=/usr/bin:/bin HOME=<tmp> claude plugin install next-context --marketplace ajwann/context-band`. The installed copy validates and passes its tests.
+- A fresh install works in an isolated home: `env -i PATH=/usr/bin:/bin HOME=<tmp> claude plugin install next-context --marketplace ajwann/next-context`. The installed copy validates and passes its tests.
 
-To submit: claude.ai/directory/manage, then **Submit new**, then **Plugin bundle**. Choose `ajwann/context-band`, plugin folder `/`. Answer the data-handling questions (no personal data, no sharing, no retention, not aimed at under-18s), then **Validate** and **Submit**.
+To submit: claude.ai/directory/manage, then **Submit new**, then **Plugin bundle**. Choose `ajwann/next-context`, plugin folder `/`. Answer the data-handling questions (no personal data, no sharing, no retention, not aimed at under-18s), then **Validate** and **Submit**.
