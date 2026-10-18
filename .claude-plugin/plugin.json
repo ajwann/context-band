@@ -1,0 +1,145 @@
+{
+  "name": "context-band",
+  "displayName": "Context Band",
+  "version": "0.3.0",
+  "description": "Live context-window monitor above the Claude Code prompt that tells you when to compact: turns until auto-compaction, overhead and MCP cost before the first message, growth per turn, and warnings at thresholds you set. All 16 data points are configurable.",
+  "author": {
+    "name": "ajwann"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/ajwann/context-band",
+  "repository": "https://github.com/ajwann/context-band",
+  "keywords": [
+    "context",
+    "context-window",
+    "tokens",
+    "token-usage",
+    "compaction",
+    "auto-compact",
+    "mcp",
+    "monitor",
+    "above-prompt"
+  ],
+  "userConfig": {
+    "showBar": {
+      "type": "boolean",
+      "title": "Stacked bar",
+      "description": "A bar of the context window, one colour per /context category",
+      "default": true
+    },
+    "showPercent": {
+      "type": "boolean",
+      "title": "Percent and tokens",
+      "description": "Percent of the window used, and tokens used out of the window",
+      "default": true
+    },
+    "showGrowth": {
+      "type": "boolean",
+      "title": "Growth last turn",
+      "description": "How many tokens the last turn added",
+      "default": true
+    },
+    "showTrend": {
+      "type": "boolean",
+      "title": "Growth trend",
+      "description": "A sparkline of the growth of the last eight turns",
+      "default": true
+    },
+    "showTurnsLeft": {
+      "type": "boolean",
+      "title": "Turns until auto-compact",
+      "description": "Projected turns left before auto-compaction, from recent growth",
+      "default": true
+    },
+    "showRoomLeft": {
+      "type": "boolean",
+      "title": "Tokens until auto-compact",
+      "description": "Tokens left before auto-compaction runs",
+      "default": false
+    },
+    "showOverhead": {
+      "type": "boolean",
+      "title": "Overhead",
+      "description": "Tokens taken before any message: system prompt, tools, MCP, memory files and skills",
+      "default": true
+    },
+    "showMcp": {
+      "type": "boolean",
+      "title": "MCP tools",
+      "description": "Tokens the loaded MCP tool schemas take, with the largest server",
+      "default": true
+    },
+    "showLegend": {
+      "type": "boolean",
+      "title": "Category legend",
+      "description": "Each /context category with its tokens, largest first",
+      "default": true
+    },
+    "showTurnCount": {
+      "type": "boolean",
+      "title": "Turn count",
+      "description": "Turns since the last compaction or /clear",
+      "default": false
+    },
+    "showLastCompact": {
+      "type": "boolean",
+      "title": "Last compaction",
+      "description": "Context size before and after the last compaction",
+      "default": true
+    },
+    "showCacheHit": {
+      "type": "boolean",
+      "title": "Prompt cache hit",
+      "description": "Share of the last request's input read from the prompt cache",
+      "default": false
+    },
+    "showCost": {
+      "type": "boolean",
+      "title": "Session cost",
+      "description": "What the session has cost so far, as /cost totals it",
+      "default": false
+    },
+    "showRateLimits": {
+      "type": "boolean",
+      "title": "Rate limits",
+      "description": "5-hour and weekly plan usage (subscription accounts)",
+      "default": false
+    },
+    "showHint": {
+      "type": "boolean",
+      "title": "Warning hint",
+      "description": "A hint to /compact or /clear once the warning threshold is passed",
+      "default": true
+    },
+    "toastOnWarn": {
+      "type": "boolean",
+      "title": "Warning toast",
+      "description": "A one-time toast when context passes the warning threshold",
+      "default": true
+    },
+    "warnPercent": {
+      "type": "number",
+      "title": "Warning at percent",
+      "description": "Percent of the window at which the band turns yellow and the hint shows",
+      "default": 60,
+      "min": 1,
+      "max": 100
+    },
+    "dangerPercent": {
+      "type": "number",
+      "title": "Danger at percent",
+      "description": "Percent of the window at which the band turns red",
+      "default": 80,
+      "min": 1,
+      "max": 100
+    },
+    "warnTokens": {
+      "type": "number",
+      "title": "Warning at tokens",
+      "description": "Also warn past this many tokens, whatever the window size (0 turns it off); useful on 1M windows",
+      "default": 0,
+      "min": 0
+    }
+  },
+  "types": "./types/index.d.ts"
+}

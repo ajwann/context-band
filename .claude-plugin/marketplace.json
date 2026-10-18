@@ -1,0 +1,16 @@
+{
+  "name": "context-band",
+  "owner": {
+    "name": "ajwann"
+  },
+  "metadata": {
+    "description": "Context Band: live /context stats above the Claude Code prompt"
+  },
+  "plugins": [
+    {
+      "name": "context-band",
+      "source": "./",
+      "description": "Live /context stats above the prompt, with growth per turn and turns until auto-compaction"
+    }
+  ]
+}
