@@ -40,7 +40,7 @@ jobs:
         run: claude --version
 
       - name: Validate plugin
-        run: claude plugin validate .
+        run: claude plugin validate --strict .
 
       - name: Run tests
         run: claude plugin test .

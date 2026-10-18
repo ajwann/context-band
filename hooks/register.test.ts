@@ -242,3 +242,44 @@ test('a compaction shows its before and after, and growth starts over', async ($
   expect(await ui.find({ type: 'Text', text: /last turn/ })).toBeUndefined()
   await ui.unmount()
 })
+
+test('/context-band <item> on|off finds an installed plugin\'s option key', async ($, on) => {
+  const writes: string[] = []
+  const row = (key: string) => ({
+    key,
+    label: key,
+    kind: 'boolean' as const,
+    value: false,
+    provider: { plugin: 'context-band', tier: 'user' as const },
+    isLocked: false,
+  })
+  on('config.list', () => ({ value: [row('theme'), row('context-band@context-band.showCost'), row('context-band@context-band.showCacheHit')] }))
+  on('config.set', (_, e) => {
+    writes.push(e.key)
+    return { value: e.value }
+  })
+
+  await $.command.run({ command: 'context-band', args: 'cost on', ...RUN })
+  await $.command.run({ command: 'context-band', args: 'cache off', ...RUN })
+  expect(writes).toEqual(['context-band@context-band.showCost', 'context-band@context-band.showCacheHit'])
+})
+
+test('the session\'s first turn counts, though it has no growth to show', { options: { showTurnCount: true } }, async ($, on) => {
+  let tokens: number | undefined
+  on('session.usage', () => ({ value: { ...USAGE, context: { ...USAGE.context, tokens } } }))
+  on('turn.start', (_, e) => ({ turnId: e.turnId }))
+  on('turn.complete', () => ({ text: 'ok' }))
+  const turn = async (id: string, after: number) => {
+    await $.turn.start({ text: 'hi', turnId: id })
+    tokens = after
+    await $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: false, turnId: id, reason: 'answer' })
+  }
+  await turn('t1', 40_000)
+  await turn('t2', 46_000)
+  await turn('t3', 52_000)
+
+  const ui = await $.ui.mount({ plugin: 'context-band', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  expect(await ui.find({ type: 'Text', text: /turn 3 since compact/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /\+6\.0k last turn/ })).toBeDefined()
+  await ui.unmount()
+})

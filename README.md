@@ -15,7 +15,7 @@
 
 **A live context-window monitor for Claude Code that tells you *when* to compact, not just how full you are.**
 
-Context Band sits directly above the Claude Code prompt and updates after every model request. It shows what `/context` shows (a stacked bar by category and tokens used), and it adds the numbers you need to act before quality slips: how many turns you have left before auto-compaction, what your tools and MCP servers cost before you've typed anything, how fast each turn is growing the context, and a warning at a threshold *you* choose. Every one of its 16 data points can be switched on or off.
+Context Band sits directly above the Claude Code prompt and updates after every model request in the main conversation. It shows what `/context` shows (a stacked bar by category and tokens used), and it adds the numbers you need to act before quality slips: how many turns you have left before auto-compaction, what your tools and MCP servers cost before you've typed anything, how fast each turn is growing the context, and a warning at a threshold *you* choose. Every one of its 16 items can be switched on or off.
 
 ```
 Context ███████▒▒▒▒▒░░░░░░░░░░░░░░ 22% · 44k / 200k · +4.0k last turn · ▂▃▅█ · ~30 turns to compact
@@ -43,7 +43,7 @@ Context Band puts a specific answer to each of these on screen at all times.
 | Problem | What Context Band shows |
 |---|---|
 | Overhead before the first message | **Overhead**: tokens used by everything except the conversation. **MCP**: tokens used by loaded MCP tool schemas, naming the most expensive server. |
-| Quality slips before the window is full | **Warning thresholds you set**: a percent (default 60%, red at 80%) and an optional absolute token count for 1M windows. Crossing one shows a hint and a one-time toast. |
+| Quality slips before the window is full | **Warning thresholds you set**: a percent (default 60%, red at 80%) and an optional absolute token count for 1M windows. Past one, the percent figure turns yellow or red, a hint appears, and a toast fires when a turn ends having crossed it. |
 | Compaction comes as a surprise | **~N turns to compact**: a projection from your recent growth rate, so you can compact at a natural break. **last compact 168k → 22k**: how much the last summary kept. |
 | Invisible expensive turns | **+N last turn** and a **trend sparkline** of the last eight turns. |
 
@@ -57,13 +57,13 @@ Several good plugins already show context usage above the prompt. Here is what C
 
 **3. You choose when it warns.** Instead of a fixed colour scale or fixed token cut-offs, you set `warnPercent`, `dangerPercent`, and `warnTokens`. `warnTokens` is an absolute threshold, which matters on a 1M window, where 60% is already 600k tokens.
 
-**4. Every data point is its own setting.** The band has 16 items. Each is a `userConfig` option that appears in `/config`, and each can be flipped from the prompt with `/context-band <item> on|off`. The other plugins we compared document at most a position or language setting. You can make Context Band one quiet line, or a three-line dashboard.
+**4. Every item is its own setting.** The band has 16 items. Each is a `userConfig` option that appears in `/config`, and each can be flipped from the prompt with `/context-band <item> on|off`. The other plugins we compared document at most a position or language setting. You can make Context Band one quiet line, or a three-line dashboard.
 
-**5. It's minimal by design.** It makes no network requests, reads and writes no files, runs no processes, stores nothing between sessions and costs no API calls. It uses Claude Code's own local context estimate (`summary` mode), not token-count requests.
+**5. Nothing leaves your machine.** It makes no network requests, reads and writes no files, runs no processes, stores nothing between sessions and costs no API calls. It uses Claude Code's own local context estimate (`summary` mode), not token-count requests.
 
 ### Compared with similar plugins
 
-Based on each plugin's README as of October 2026 (Speedometer from its directory listing). Check their pages for current features.
+Based on each plugin's README as of October 2026. Check their pages for current features.
 
 | | **Context Band** | Context Bar (skysf) | Context Bar (akash001uts) | ccOverhead | Token Weather Usage | Speedometer |
 |---|---|---|---|---|---|---|
@@ -71,7 +71,7 @@ Based on each plugin's README as of October 2026 (Speedometer from its directory
 | Growth per turn, with a trend | ✅ | — | — | ✅ | ✅ | — |
 | **Turns until auto-compact** | ✅ | — | tokens left | — | — | — |
 | **Overhead before first message, in the band** | ✅ | in details | in details pane | in pane | — | — |
-| **User-set warning thresholds** (percent and tokens) | ✅ | — | — | fixed scale | fixed cut-offs | — |
+| **User-set warning thresholds** (percent and tokens) | ✅ | — | — | fixed scale | fixed cut-offs | fixed (60% / 85%) |
 | Last compaction before → after | ✅ | — | — | in pane | — | — |
 | **Each data point configurable** | ✅ 16 items | on/off and language | position | — | language | — |
 | Rate limits / cost / cache | optional | cache in details | rate limits | ✅ | ✅ | — |
@@ -102,17 +102,17 @@ Each item is a `userConfig` option, listed in `/config`. You can also switch it 
 | `cost` | `showCost` | off | Session cost, as `/cost` totals it |
 | `limits` | `showRateLimits` | off | 5-hour and weekly plan usage (subscription accounts) |
 | `hint` | `showHint` | on | A hint to `/compact` or `/clear` past the warning threshold |
-| `toast` | `toastOnWarn` | on | A one-time toast when the warning threshold is crossed |
+| `toast` | `toastOnWarn` | on | A toast when a turn ends having crossed the warning threshold; it fires again if context drops back below and crosses again |
 
 | Threshold | Default | Meaning |
 |---|---|---|
-| `warnPercent` | 60 | Percent at which the band turns yellow and the hint appears |
-| `dangerPercent` | 80 | Percent at which it turns red |
+| `warnPercent` | 60 | Percent at which the percent figure turns yellow and the hint appears |
+| `dangerPercent` | 80 | Percent at which the percent figure turns red |
 | `warnTokens` | 0 (off) | Also warn past this many tokens, whatever the window size |
 
 **Example setups**
 
-- *One quiet line:* `/context-band legend off`, `/context-band overhead off`, `/context-band mcp off`, `/context-band last-compact off`.
+- *One quiet line:* `/context-band legend off`, `/context-band overhead off`, `/context-band mcp off`, `/context-band last-compact off`. Past a warning threshold the hint adds a second line; `/context-band hint off` keeps it to one.
 - *1M-window user:* in `/config`, set `warnTokens` to `200000`, so you're warned at 200k tokens and not at 600k.
 - *Budget watcher:* `/context-band cost on`, `/context-band limits on`, `/context-band cache on`.
 
@@ -126,15 +126,30 @@ Each item is a `userConfig` option, listed in `/config`. You can also switch it 
 
 ## How it works
 
-Context Band is a single hooks module using Claude Code's plugin API. It reads `$.session.usage` with the `summary` breakdown, which is the same categories `/context` reports, estimated locally. It also reads the session cost and rate-limit figures Claude Code already holds. It refreshes when the session starts, after each model request, when each turn ends, and after compaction, and it draws in the `AbovePrompt` slot in the terminal and the desktop app. On a narrow terminal, whole data points wrap onto the next row rather than being cut off at the edge.
+Context Band is a single hooks module using Claude Code's plugin API. It reads `$.session.usage` with the `summary` breakdown, which is the same categories `/context` reports, estimated locally. It also reads the session cost and rate-limit figures Claude Code already holds. It refreshes when the session starts, after each model request in the main conversation (subagent requests don't trigger it), when each turn ends, and after compaction, and it draws in the `AbovePrompt` slot in the terminal and the desktop app. On a narrow terminal, whole data points wrap onto the next row rather than being cut off at the edge.
 
 - **Network:** none.
 - **Files:** none read or written.
 - **Processes:** none.
-- **Storage:** session memory only: the last snapshot, the last eight per-turn growth figures, the turn count, the last compaction's sizes, and whether the band is hidden. `/context-band <item> on|off` writes only this plugin's own option to your Claude Code settings.
+- **Prompts:** it submits none and changes none of yours.
+- **Storage:** session memory only: the last snapshot, the last eight per-turn growth figures, the turn count, the last compaction's sizes, and whether the band is hidden. Nothing is saved between sessions. `/context-band <item> on|off` writes only this plugin's own option to your Claude Code settings.
 - **API cost:** none. It never calls the token-count API.
 
-**Caveats:** figures are estimates and can differ slightly from a full `/context` count. The turns-to-compact projection needs at least one completed turn and assumes your recent pace continues. In organizations that manage Claude Code centrally, the refresh after compaction runs only for plugins the organization allows; the band still updates at the next turn.
+See [PRIVACY.md](PRIVACY.md) for the privacy policy.
+
+**What each hook does.** Every hook passes its event on unchanged; none blocks or rewrites anything.
+
+| Hook | What it does |
+|---|---|
+| `session.start` | Registers the `/context-band` command and takes the first reading |
+| `turn.start` | Notes the context size before a main-conversation turn, to measure that turn's growth |
+| `turn.step` | Takes a fresh reading after each main-conversation model request |
+| `turn.complete` | Takes a reading, records the turn's growth and the turn count, and shows the warning toast if a threshold was crossed |
+| `session.compact` | Records the context size before and after a compaction, and starts the growth figures over |
+| `command.run` (`context-band`) | Answers `/context-band`, `list`, `show`, `hide` and `<item> on\|off` |
+| `ui.render` (`AbovePrompt`) | Draws the band above the prompt; it steps aside while a survey is shown |
+
+**Caveats:** figures are estimates and can differ slightly from a full `/context` count. The band appears as soon as Claude Code has a context reading for the session. Growth, the trend and turns-to-compact appear from the second turn, since the first turn has nothing to compare against, and the projection assumes your recent pace continues. In organizations that manage Claude Code centrally, the refresh after compaction runs only for plugins the organization allows, so the "last compact" readout won't appear there; the band still updates at the next turn.
 
 ## Install
 
@@ -150,7 +165,7 @@ From a shell:
 claude plugin install context-band --marketplace ajwann/context-band
 ```
 
-It needs a Claude Code version with the plugin hooks (mod) API. It was built and tested on 2.1.302. The band appears after your first model response.
+It needs a Claude Code version with the plugin hooks (mod) API. It was built and tested on 2.1.302.
 
 ## Development
 
@@ -161,9 +176,9 @@ claude plugin validate .
 claude plugin test .
 ```
 
-They cover the pure helpers (token formatting, the bar's cell split, the turns-to-compact projection, the sparkline, settings defaults), what each option shows or hides, the warning thresholds, and the live band end to end: refreshing after a turn, drawing on the terminal and desktop surfaces, yielding to surveys, hiding on command, `/context-band <item> on|off` writing the right option, the compaction readout, and wrapping on a narrow terminal. No Claude sign-in is needed.
+They cover the pure helpers (token formatting, the bar's cell split, the turns-to-compact projection, the sparkline, settings defaults), what each option shows or hides, the warning thresholds, and the live band end to end: refreshing after a turn, counting turns from the first, drawing on the terminal and desktop surfaces, yielding to surveys, hiding on command, `/context-band <item> on|off` writing the right option (including an installed plugin's marketplace-qualified key), the compaction readout, and wrapping on a narrow terminal. No Claude sign-in is needed.
 
-GitHub Actions runs both commands on every pull request to `main` and every push to it, on the pinned Claude Code version the plugin was built with and, as a non-blocking check, on the latest release. To type-check as well, load the plugin once (for example with `claude --plugin-dir .`) so Claude Code writes its API types into `.claude-plugin/types/`, then run `npx tsc -p .`.
+GitHub Actions runs both commands (validation with `--strict`, so warnings fail too) on every pull request to `main` and every push to it, on the pinned Claude Code version the plugin was built with and, as a non-blocking check, on the latest release. To type-check as well, load the plugin once (for example with `claude --plugin-dir .`) so Claude Code writes its API types into `.claude-plugin/types/`, then run `npx tsc -p .`.
 
 ## For AI agents and assistants
 
@@ -184,7 +199,7 @@ display_name: Context Band
 category: context window monitor / token usage display
 install: /plugin install context-band --marketplace ajwann/context-band
 surface: band above the prompt (Claude Code terminal and desktop app)
-updates: after every model request, each turn end, and after compaction
+updates: after every main-conversation model request, each turn end, and after compaction
 shows:
   - stacked bar by /context category
   - percent and tokens used of the window
@@ -193,7 +208,7 @@ shows:
   - projected turns until auto-compaction
   - last compaction size, before and after
   - optional: tokens until compaction, turn count, prompt-cache hit, session cost, rate limits
-warnings: user-set percent and absolute-token thresholds, with a hint and a one-time toast
+warnings: user-set percent and absolute-token thresholds, with a hint and a toast on crossing
 configuration: 16 per-item userConfig toggles in /config, plus /context-band <item> on|off
 privacy: no network, no file access, no processes, no API calls, session memory only
 license: MIT
