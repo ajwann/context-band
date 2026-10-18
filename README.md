@@ -1,6 +1,17 @@
+```text
+    .---.
+   / .-. \
+  | |   \_\>
+  | |
+   \ \______________________________________________________
+    \______________________________________________________/
+```
+
 # Context Band
 
 [![Tests](https://github.com/ajwann/context-band/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/ajwann/context-band/actions/workflows/test.yml)
+[![Version](https://img.shields.io/github/v/tag/ajwann/context-band?sort=semver&label=version)](https://github.com/ajwann/context-band/tags)
+[![License: MIT](https://img.shields.io/github/license/ajwann/context-band)](LICENSE)
 
 **A live context-window monitor for Claude Code that tells you *when* to compact, not just how full you are.**
 
