@@ -14,7 +14,7 @@ export type Snapshot = {
   compactAt?: number
   isAutoCompact: boolean
   overhead: number
-  mcpTokens: number
+  mcpSize: number
   topMcp?: { name: string; tokens: number }
   cacheHit?: number
   costUsd?: number
@@ -25,13 +25,14 @@ export type Compaction = { before: number; after: number }
 
 declare module 'claude-code' {
   interface PluginState {
-    'context-band': {
+    'next-context': {
       snapshot: Snapshot | null
       isHidden: boolean
       history: number[]
       turnCount: number
       lastCompact: Compaction | null
       isWarned: boolean
+      overrides: { [item: string]: boolean }
     }
   }
 }

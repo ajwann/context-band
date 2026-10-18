@@ -1,8 +1,8 @@
 {
-  "name": "context-band",
-  "displayName": "Context Band",
-  "version": "0.3.2",
-  "description": "Live context-window monitor above the Claude Code prompt that tells you when to compact: turns until auto-compaction, overhead and MCP cost before the first message, growth per turn, and warnings at thresholds you set. All 16 items are configurable.",
+  "name": "next-context",
+  "displayName": "Next Context",
+  "version": "0.4.0",
+  "description": "Answers 'what's next for my context?' in a live band above the Claude Code prompt: turns until auto-compaction, overhead and MCP cost before the first message, growth per turn, and warnings at thresholds you set. All 16 items are configurable.",
   "author": {
     "name": "ajwann"
   },
@@ -137,13 +137,12 @@
       "min": 1,
       "max": 100
     },
-    "warnTokens": {
+    "warnSize": {
       "type": "number",
-      "title": "Warning at tokens",
+      "title": "Warning at token count",
       "description": "Also warn past this many tokens, whatever the window size (0 turns it off); useful on 1M windows",
       "default": 0,
       "min": 0
     }
-  },
-  "types": "./types/index.d.ts"
+  }
 }

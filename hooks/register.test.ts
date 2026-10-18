@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import type { SessionUsage } from 'claude-code'
 
-import { barSegments, compose, fmtTokens, settingsFrom, sparkline, turnsToCompact } from './register'
+import { barSegments, compose, formatCount, settingsFrom, sparkline, turnsToCompact } from './register'
 import type { Extra } from './register'
 import type { Row, Snapshot } from '../types'
 
@@ -62,7 +62,7 @@ const SNAP: Snapshot = {
   compactAt: 160_000,
   isAutoCompact: true,
   overhead: 20_000,
-  mcpTokens: 0,
+  mcpSize: 0,
   limits: [],
 }
 
@@ -71,11 +71,11 @@ const text = (lines: ReturnType<typeof compose>) =>
   lines.map(line => line.map(chunk => chunk.map(part => part.text).join('')).join(' · ')).join('\n')
 const RUN = { origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 100 } }
 
-test('fmtTokens shortens counts', async () => {
-  expect(fmtTokens(950)).toBe('950')
-  expect(fmtTokens(1234)).toBe('1.2k')
-  expect(fmtTokens(84_100)).toBe('84k')
-  expect(fmtTokens(1_000_000)).toBe('1.0M')
+test('formatCount shortens counts', async () => {
+  expect(formatCount(950)).toBe('950')
+  expect(formatCount(1234)).toBe('1.2k')
+  expect(formatCount(84_100)).toBe('84k')
+  expect(formatCount(1_000_000)).toBe('1.0M')
 })
 
 test('bar segments fill the width exactly, deferred rows left out', async () => {
@@ -122,7 +122,7 @@ test('compose shows only what is switched on', async () => {
   expect(shown).toMatch(/Overhead 20k \(10%\)/)
   expect(shown).toMatch(/turn 2 since compact/)
   expect(shown).toMatch(/last compact 168k → 22k/)
-  expect(shown).toMatch(/\$2\.25/)
+  expect(shown).toMatch(/2\.25/)
 
   const off = ['showPercent', 'showGrowth', 'showTrend', 'showTurnsLeft', 'showOverhead', 'showLastCompact', 'showHint']
   const none = settingsFrom(Object.fromEntries(off.map(key => [key, false])))
@@ -133,7 +133,7 @@ test('the warning hint follows the thresholds', async () => {
   const hint = /quality can slip/
   expect(text(compose({ ...SNAP, percent: 40, tokens: 80_000 }, EXTRA, settingsFrom({})))).not.toMatch(hint)
   expect(text(compose({ ...SNAP, percent: 65 }, EXTRA, settingsFrom({})))).toMatch(hint)
-  expect(text(compose({ ...SNAP, percent: 30, tokens: 300_000 }, EXTRA, settingsFrom({ warnTokens: 250_000 })))).toMatch(hint)
+  expect(text(compose({ ...SNAP, percent: 30, tokens: 300_000 }, EXTRA, settingsFrom({ warnSize: 250_000 })))).toMatch(hint)
   expect(text(compose({ ...SNAP, percent: 65 }, EXTRA, settingsFrom({ showHint: false })))).not.toMatch(hint)
 })
 
@@ -148,18 +148,18 @@ test('the band shows the live figures and hides on command', async ($, on) => {
   await $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
 
   for (const surface of ['terminal', 'desktop'] as const) {
-    const ui = await $.ui.mount({ plugin: 'context-band', surface, component: 'AbovePrompt', props: PROPS })
+    const ui = await $.ui.mount({ plugin: 'next-context', surface, component: 'AbovePrompt', props: PROPS })
     expect(await ui.find({ type: 'Text', text: /22% · 44k \/ 200k/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /\+4\.0k last turn/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /~30 turns to compact/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /Overhead 15k/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /MCP 12k \(github 8\.0k\)/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /Messages 29k/ })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: /\$1\.50/ })).toBeUndefined()
+    expect(await ui.find({ type: 'Text', text: /1\.50/ })).toBeUndefined()
     await ui.unmount()
 
     const survey = await $.ui.mount({
-      plugin: 'context-band',
+      plugin: 'next-context',
       surface,
       component: 'AbovePrompt',
       props: { ...PROPS, hasSurvey: true },
@@ -168,11 +168,11 @@ test('the band shows the live figures and hides on command', async ($, on) => {
     await survey.unmount()
   }
 
-  const listed = await $.command.run({ command: 'context-band', args: 'list', ...RUN })
+  const listed = await $.command.run({ command: 'next-context', args: 'list', ...RUN })
   expect(JSON.stringify(listed)).toMatch(/○ cost/)
 
-  await $.command.run({ command: 'context-band', args: '', ...RUN })
-  const hidden = await $.ui.mount({ plugin: 'context-band', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  await $.command.run({ command: 'next-context', args: '', ...RUN })
+  const hidden = await $.ui.mount({ plugin: 'next-context', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
   expect(await hidden.find({ type: 'Text', text: /200k/ })).toBeUndefined()
   await hidden.unmount()
 })
@@ -185,8 +185,8 @@ test(
     on('turn.complete', () => ({ text: 'ok' }))
     await $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
 
-    const ui = await $.ui.mount({ plugin: 'context-band', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
-    expect(await ui.find({ type: 'Text', text: /\$1\.50/ })).toBeDefined()
+    const ui = await $.ui.mount({ plugin: 'next-context', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+    expect(await ui.find({ type: 'Text', text: /1\.50/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /cache 82% hit/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /5h 34%/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /Messages 29k/ })).toBeUndefined()
@@ -199,7 +199,7 @@ test('rows wrap whole data points rather than truncating on a narrow terminal', 
   on('turn.complete', () => ({ text: 'ok' }))
   await $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
 
-  const ui = await $.ui.mount({ plugin: 'context-band', surface: 'terminal', component: 'AbovePrompt', props: { ...PROPS, bodyColumns: 40 } })
+  const ui = await $.ui.mount({ plugin: 'next-context', surface: 'terminal', component: 'AbovePrompt', props: { ...PROPS, bodyColumns: 40 } })
   const drawn = JSON.stringify(await ui.drawn())
   expect(drawn).toMatch(/"flexWrap":"wrap"/)
   expect(drawn).not.toMatch(/truncate/)
@@ -207,22 +207,28 @@ test('rows wrap whole data points rather than truncating on a narrow terminal', 
   await ui.unmount()
 })
 
-test('/context-band <item> on|off writes that item\'s option', async ($, on) => {
-  const writes: { key: string; value: unknown }[] = []
-  on('config.set', (_, e) => {
-    writes.push({ key: e.key, value: e.value })
-    return { value: e.value }
-  })
+test('/next-context <item> on|off switches an item for this session', async ($, on) => {
+  on('session.usage', () => ({ value: USAGE }))
+  on('turn.complete', () => ({ text: 'ok' }))
+  await $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
 
-  const done = await $.command.run({ command: 'context-band', args: 'cost on', ...RUN })
-  expect(writes).toEqual([{ key: 'context-band.showCost', value: true }])
-  expect(JSON.stringify(done)).toMatch(/cost on/)
+  const done = await $.command.run({ command: 'next-context', args: 'cost on', ...RUN })
+  expect(JSON.stringify(done)).toMatch(/cost on for this session/)
+  await $.command.run({ command: 'next-context', args: 'legend off', ...RUN })
 
-  const bad = await $.command.run({ command: 'context-band', args: 'cost maybe', ...RUN })
-  expect(JSON.stringify(bad)).toMatch(/Usage: \/context-band cost on\|off/)
-  const unknown = await $.command.run({ command: 'context-band', args: 'nonsense', ...RUN })
+  const ui = await $.ui.mount({ plugin: 'next-context', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  expect(await ui.find({ type: 'Text', text: /1\.50/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /Messages 29k/ })).toBeUndefined()
+  await ui.unmount()
+
+  const listed = await $.command.run({ command: 'next-context', args: 'list', ...RUN })
+  expect(JSON.stringify(listed)).toMatch(/● cost/)
+  expect(JSON.stringify(listed)).toMatch(/○ legend/)
+
+  const bad = await $.command.run({ command: 'next-context', args: 'cost maybe', ...RUN })
+  expect(JSON.stringify(bad)).toMatch(/Usage: \/next-context cost on\|off/)
+  const unknown = await $.command.run({ command: 'next-context', args: 'nonsense', ...RUN })
   expect(JSON.stringify(unknown)).toMatch(/Unknown item/)
-  expect(writes.length).toBe(1)
 })
 
 test('a compaction shows its before and after, and growth starts over', async ($, on) => {
@@ -237,31 +243,10 @@ test('a compaction shows its before and after, and growth starts over', async ($
   await $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
   await $.session.compact({ trigger: 'auto', messages: summary })
 
-  const ui = await $.ui.mount({ plugin: 'context-band', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  const ui = await $.ui.mount({ plugin: 'next-context', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
   expect(await ui.find({ type: 'Text', text: /last compact 168k → 22k/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /last turn/ })).toBeUndefined()
   await ui.unmount()
-})
-
-test('/context-band <item> on|off finds an installed plugin\'s option key', async ($, on) => {
-  const writes: string[] = []
-  const row = (key: string) => ({
-    key,
-    label: key,
-    kind: 'boolean' as const,
-    value: false,
-    provider: { plugin: 'context-band', tier: 'user' as const },
-    isLocked: false,
-  })
-  on('config.list', () => ({ value: [row('theme'), row('context-band@context-band.showCost'), row('context-band@context-band.showCacheHit')] }))
-  on('config.set', (_, e) => {
-    writes.push(e.key)
-    return { value: e.value }
-  })
-
-  await $.command.run({ command: 'context-band', args: 'cost on', ...RUN })
-  await $.command.run({ command: 'context-band', args: 'cache off', ...RUN })
-  expect(writes).toEqual(['context-band@context-band.showCost', 'context-band@context-band.showCacheHit'])
 })
 
 test('the session\'s first turn counts, though it has no growth to show', { options: { showTurnCount: true } }, async ($, on) => {
@@ -278,7 +263,7 @@ test('the session\'s first turn counts, though it has no growth to show', { opti
   await turn('t2', 46_000)
   await turn('t3', 52_000)
 
-  const ui = await $.ui.mount({ plugin: 'context-band', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  const ui = await $.ui.mount({ plugin: 'next-context', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
   expect(await ui.find({ type: 'Text', text: /turn 3 since compact/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /\+6\.0k last turn/ })).toBeDefined()
   await ui.unmount()

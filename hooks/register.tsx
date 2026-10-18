@@ -3,17 +3,19 @@ import type { EngineInterface, PluginOptions, Register, RenderChildren } from 'c
 
 import type { Compaction, Row, Snapshot } from '../types'
 
-const snapshot = atom({ plugin: 'context-band', key: 'snapshot' } as const, null)
-const isHidden = atom({ plugin: 'context-band', key: 'isHidden' } as const, false)
-const history = atom({ plugin: 'context-band', key: 'history' } as const, [])
-const turnCount = atom({ plugin: 'context-band', key: 'turnCount' } as const, 0)
-const lastCompact = atom({ plugin: 'context-band', key: 'lastCompact' } as const, null)
-const isWarned = atom({ plugin: 'context-band', key: 'isWarned' } as const, false)
+const snapshot = atom({ plugin: 'next-context', key: 'snapshot' } as const, null)
+const isHidden = atom({ plugin: 'next-context', key: 'isHidden' } as const, false)
+const history = atom({ plugin: 'next-context', key: 'history' } as const, [])
+const turnCount = atom({ plugin: 'next-context', key: 'turnCount' } as const, 0)
+const lastCompact = atom({ plugin: 'next-context', key: 'lastCompact' } as const, null)
+const isWarned = atom({ plugin: 'next-context', key: 'isWarned' } as const, false)
+// Items switched with `/next-context <item> on|off`, for this session only.
+const overrides = atom({ plugin: 'next-context', key: 'overrides' } as const, {})
 
 const HISTORY = 8
 const SPARK = '▁▂▃▄▅▆▇█'
 
-// Each data point the band can show: its `/context-band <item>` name, the
+// Each data point the band can show: its `/next-context <item>` name, the
 // userConfig field that holds it, and whether it is on out of the box.
 export const ITEMS = [
   { item: 'bar', field: 'showBar', isDefault: true },
@@ -38,7 +40,7 @@ export type Item = (typeof ITEMS)[number]['item']
 export type Settings = Record<Item, boolean> & {
   warnPercent: number
   dangerPercent: number
-  warnTokens: number
+  warnSize: number
 }
 
 export function settingsFrom(options: PluginOptions): Settings {
@@ -55,11 +57,11 @@ export function settingsFrom(options: PluginOptions): Settings {
     ...flags,
     warnPercent: num('warnPercent', 60),
     dangerPercent: num('dangerPercent', 80),
-    warnTokens: num('warnTokens', 0),
+    warnSize: num('warnSize', 0),
   }
 }
 
-export function fmtTokens(n: number): string {
+export function formatCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 10_000) return `${Math.round(n / 1000)}k`
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
@@ -115,8 +117,8 @@ export function percentOf(snap: Snapshot): number {
 export function level(snap: Snapshot, settings: Settings): 'ok' | 'warn' | 'danger' {
   const percent = percentOf(snap)
   if (percent >= settings.dangerPercent) return 'danger'
-  const isOverTokens = settings.warnTokens > 0 && (snap.tokens ?? 0) >= settings.warnTokens
-  return percent >= settings.warnPercent || isOverTokens ? 'warn' : 'ok'
+  const isOverSize = settings.warnSize > 0 && (snap.tokens ?? 0) >= settings.warnSize
+  return percent >= settings.warnPercent || isOverSize ? 'warn' : 'ok'
 }
 
 export type Part = { text: string; color?: string; isDim?: boolean }
@@ -140,12 +142,12 @@ export function compose(snap: Snapshot, extra: Extra, settings: Settings): Chunk
   const core: Part[] = []
   if (settings.percent) {
     core.push({
-      text: `${percentOf(snap)}% · ${fmtTokens(snap.tokens ?? 0)} / ${fmtTokens(snap.window)}${extra.isWorking ? ' ↻' : ''}`,
+      text: `${percentOf(snap)}% · ${formatCount(snap.tokens ?? 0)} / ${formatCount(snap.window)}${extra.isWorking ? ' ↻' : ''}`,
       color: tone,
     })
   }
   const last = extra.deltas[extra.deltas.length - 1]
-  if (settings.growth && last !== undefined) core.push({ text: `+${fmtTokens(last)} last turn`, isDim: true })
+  if (settings.growth && last !== undefined) core.push({ text: `+${formatCount(last)} last turn`, isDim: true })
   if (settings.trend && extra.deltas.length > 1) core.push({ text: sparkline(extra.deltas), isDim: true })
   if (settings['turns-left']) {
     const turns = turnsToCompact(snap, extra.deltas)
@@ -156,16 +158,16 @@ export function compose(snap: Snapshot, extra: Extra, settings: Settings): Chunk
     }
   }
   if (settings['room-left'] && snap.isAutoCompact && snap.compactAt !== undefined && snap.tokens !== undefined) {
-    core.push({ text: `${fmtTokens(Math.max(0, snap.compactAt - snap.tokens))} until compact`, isDim: true })
+    core.push({ text: `${formatCount(Math.max(0, snap.compactAt - snap.tokens))} until compact`, isDim: true })
   }
 
   const makeup: Part[] = []
   if (settings.overhead && snap.overhead > 0) {
-    makeup.push({ text: `Overhead ${fmtTokens(snap.overhead)} (${Math.round((snap.overhead / snap.max) * 100)}%)`, isDim: true })
+    makeup.push({ text: `Overhead ${formatCount(snap.overhead)} (${Math.round((snap.overhead / snap.max) * 100)}%)`, isDim: true })
   }
-  if (settings.mcp && snap.mcpTokens > 0) {
-    const top = snap.topMcp ? ` (${snap.topMcp.name} ${fmtTokens(snap.topMcp.tokens)})` : ''
-    makeup.push({ text: `MCP ${fmtTokens(snap.mcpTokens)}${top}`, isDim: true })
+  if (settings.mcp && snap.mcpSize > 0) {
+    const top = snap.topMcp ? ` (${snap.topMcp.name} ${formatCount(snap.topMcp.tokens)})` : ''
+    makeup.push({ text: `MCP ${formatCount(snap.mcpSize)}${top}`, isDim: true })
   }
   const legend: Chunk[] = []
   if (settings.legend) {
@@ -174,7 +176,7 @@ export function compose(snap: Snapshot, extra: Extra, settings: Settings): Chunk
     for (const row of [...used, ...(free ? [free] : [])]) {
       legend.push([
         { text: '■ ', color: row.kind === 'free' ? 'inactive' : row.color },
-        { text: `${row.name} ${fmtTokens(row.tokens)}`, isDim: true },
+        { text: `${row.name} ${formatCount(row.tokens)}`, isDim: true },
       ])
     }
   }
@@ -185,7 +187,7 @@ export function compose(snap: Snapshot, extra: Extra, settings: Settings): Chunk
   }
   if (settings['turn-count']) session.push({ text: `turn ${extra.turns} since compact`, isDim: true })
   if (settings['last-compact'] && extra.compaction) {
-    session.push({ text: `last compact ${fmtTokens(extra.compaction.before)} → ${fmtTokens(extra.compaction.after)}`, isDim: true })
+    session.push({ text: `last compact ${formatCount(extra.compaction.before)} → ${formatCount(extra.compaction.after)}`, isDim: true })
   }
   if (settings.cache && snap.cacheHit !== undefined) session.push({ text: `cache ${snap.cacheHit}% hit`, isDim: true })
   if (settings.cost && snap.costUsd !== undefined) session.push({ text: `$${snap.costUsd.toFixed(2)}`, isDim: true })
@@ -223,7 +225,7 @@ async function refresh($: EngineInterface): Promise<Snapshot | null> {
       compactAt: breakdown?.autoCompactThreshold,
       isAutoCompact: breakdown?.isAutoCompactEnabled ?? true,
       overhead: rows.filter(row => row.kind === 'used' && !MESSAGES.test(row.name)).reduce((a, row) => a + row.tokens, 0),
-      mcpTokens: [...servers.values()].reduce((a, b) => a + b, 0),
+      mcpSize: [...servers.values()].reduce((a, b) => a + b, 0),
       topMcp: top ? { name: top[0], tokens: top[1] } : undefined,
       cacheHit: api && input > 0 ? Math.round((api.cache_read_input_tokens / input) * 100) : undefined,
       costUsd: usage.cost?.usd,
@@ -236,14 +238,9 @@ async function refresh($: EngineInterface): Promise<Snapshot | null> {
   }
 }
 
-// The /config row of one of this plugin's options. Its key is
-// `<plugin>.<field>`, and an installed plugin may be named with its
-// marketplace (`context-band@<marketplace>`), so the key is looked up.
-async function configKey($: EngineInterface, field: string): Promise<string> {
-  const rows = await $.config.list().catch(() => [])
-  const row = rows.find(({ key }) => key.startsWith('context-band') && key.endsWith(`.${field}`))
-
-  return row?.key ?? `context-band.${field}`
+// The settings from /config, with this session's toggles on top.
+async function effective($: EngineInterface, settings: Settings): Promise<Settings> {
+  return { ...settings, ...(await read($, overrides)) } as Settings
 }
 
 function itemsText(settings: Settings): string {
@@ -253,12 +250,12 @@ function itemsText(settings: Settings): string {
 export const register: Register = (on, options) => {
   const settings = settingsFrom(options)
   // Input tokens of the last request before the running main turn began.
-  let startTokens: number | undefined
+  let startSize: number | undefined
 
   on('session.start', async ($, e, next) => {
     await $.command.register({
-      name: 'context-band',
-      description: 'Live context band: toggle it, or `list` / `<item> on|off` to choose what it shows',
+      name: 'next-context',
+      description: 'Next Context: show or hide the band, `list` its items, or `<item> on|off` for this session',
     })
     const result = await next(e)
     await refresh($)
@@ -268,7 +265,7 @@ export const register: Register = (on, options) => {
 
   on('turn.start', async ($, e, next) => {
     if (e.agentId === undefined) {
-      startTokens = await $.session
+      startSize = await $.session
         .usage()
         .then(usage => usage.context.tokens)
         .catch(() => undefined)
@@ -289,8 +286,8 @@ export const register: Register = (on, options) => {
     if (e.agentId !== undefined) return result
 
     const snap = await refresh($)
-    const before = startTokens
-    startTokens = undefined
+    const before = startSize
+    startSize = undefined
     const now = snap?.tokens
     if (now !== undefined && before !== undefined && now < before) {
       // The context shrank (a compaction or /clear): growth starts over.
@@ -304,9 +301,10 @@ export const register: Register = (on, options) => {
       await update($, turnCount, n => n + 1)
     }
     if (snap) {
-      const status = level(snap, settings)
+      const current = await effective($, settings)
+      const status = level(snap, current)
       const wasWarned = await read($, isWarned)
-      if (status !== 'ok' && !wasWarned && settings.toast) {
+      if (status !== 'ok' && !wasWarned && current.toast) {
         $.ui.toast(`Context at ${percentOf(snap)}%: a good time to /compact or /clear`)
       }
       await update($, isWarned, () => status !== 'ok')
@@ -331,24 +329,27 @@ export const register: Register = (on, options) => {
     return result
   })
 
-  on('command.run', { command: 'context-band' }, async ($, e) => {
+  on('command.run', { command: 'next-context' }, async ($, e) => {
     const [word = '', value = ''] = e.args.trim().toLowerCase().split(/\s+/)
     if (word === 'list') {
-      return { text: `Context band items (● on, ○ off):\n${itemsText(settings)}\nChange one with /context-band <item> on|off, or in /config.` }
+      const current = await effective($, settings)
+      return {
+        text: `Next Context items (● on, ○ off):\n${itemsText(current)}\nSwitch one for this session with /next-context <item> on|off; set it permanently in /config.`,
+      }
     }
     const entry = ITEMS.find(({ item }) => item === word)
     if (entry) {
-      if (value !== 'on' && value !== 'off') return { text: `Usage: /context-band ${entry.item} on|off` }
-      const { deny } = await $.config.set({ key: await configKey($, entry.field), value: value === 'on' })
-      return { text: deny ? `Could not change ${entry.item}: ${deny}` : `Context band: ${entry.item} ${value}.` }
+      if (value !== 'on' && value !== 'off') return { text: `Usage: /next-context ${entry.item} on|off` }
+      await update($, overrides, was => ({ ...was, [entry.item]: value === 'on' }))
+      return { text: `Next Context: ${entry.item} ${value} for this session. To keep it, set it in /config.` }
     }
     if (word !== '' && word !== 'show' && word !== 'hide') {
-      return { text: `Unknown item "${word}". /context-band list shows them all.` }
+      return { text: `Unknown item "${word}". /next-context list shows them all.` }
     }
     const hidden = await update($, isHidden, was => (word === '' ? !was : word === 'hide'))
     await refresh($)
 
-    return { text: hidden ? 'Context band hidden.' : 'Context band shown.' }
+    return { text: hidden ? 'Next Context hidden.' : 'Next Context shown.' }
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
@@ -358,6 +359,7 @@ export const register: Register = (on, options) => {
     }
 
     const { Box, Text } = $.ui.resolve(e)
+    const current = await effective($, settings)
     const lines = compose(
       snap,
       {
@@ -366,10 +368,10 @@ export const register: Register = (on, options) => {
         compaction: await read($, lastCompact),
         isWorking: e.props.isWorking,
       },
-      settings,
+      current,
     ).slice(0, Math.max(1, e.props.maxRows))
     const barWidth = Math.max(10, Math.min(30, Math.floor(e.props.bodyColumns / 4)))
-    const segments = settings.bar ? barSegments(snap.rows, snap.max, barWidth) : []
+    const segments = current.bar ? barSegments(snap.rows, snap.max, barWidth) : []
     if (lines.length === 0 && segments.length === 0) return next(e)
 
     // Each chunk is one Text in a wrapping row: a narrow terminal moves whole

@@ -1,16 +1,16 @@
 {
-  "name": "context-band",
+  "name": "next-context",
   "owner": {
     "name": "ajwann"
   },
   "metadata": {
-    "description": "Context Band: live /context stats above the Claude Code prompt"
+    "description": "Next Context: what's next for your context, live above the Claude Code prompt"
   },
   "plugins": [
     {
-      "name": "context-band",
+      "name": "next-context",
       "source": "./",
-      "description": "Live /context stats above the prompt, with growth per turn and turns until auto-compaction"
+      "description": "Answers 'what's next for my context?': turns until auto-compaction, overhead, growth per turn and early warnings, above the prompt"
     }
   ]
 }
