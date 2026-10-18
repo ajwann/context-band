@@ -1,8 +1,11 @@
 name: Tests
 
 on:
+  # Every pull request, whatever its base branch: when it is opened, when new
+  # commits are pushed to it, when it is reopened, and when a draft is marked
+  # ready for review.
   pull_request:
-    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
   workflow_dispatch:
@@ -16,16 +19,24 @@ concurrency:
 
 jobs:
   test:
-    name: Claude Code ${{ matrix.claude-code }}
+    # "Tests" is the required status check on main; keep the name stable when
+    # the pinned version changes.
+    name: ${{ matrix.label }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # The plugin hooks API is early access: the pinned version gates the PR,
+    # The plugin hooks API is early access: the pinned version gates merging,
     # and the latest release is tried too so an upstream change shows up early.
-    continue-on-error: ${{ matrix.claude-code == 'latest' }}
+    continue-on-error: ${{ matrix.advisory }}
     strategy:
       fail-fast: false
       matrix:
-        claude-code: ['2.1.302', 'latest']
+        include:
+          - label: Tests
+            claude-code: '2.1.302'
+            advisory: false
+          - label: Tests (latest Claude Code, advisory)
+            claude-code: latest
+            advisory: true
     steps:
       - uses: actions/checkout@v4
 
