@@ -180,6 +180,8 @@ They cover the pure helpers (token formatting, the bar's cell split, the turns-t
 
 GitHub Actions runs both commands (validation with `--strict`, so warnings fail too) whenever a pull request is opened, gets new commits, is reopened or is marked ready for review, and on every push to `main`. The **Tests** check runs on the pinned Claude Code version the plugin was built with and must pass before a pull request can merge into `main`; branch protection enforces this for everyone, admins included, and requires the branch to be up to date with `main`. A second, advisory check runs on the latest Claude Code release so an upstream change shows up early without blocking merges. To type-check as well, load the plugin once (for example with `claude --plugin-dir .`) so Claude Code writes its API types into `.claude-plugin/types/`, then run `npx tsc -p .`.
 
+Changes reach `main` only through pull requests, and releases are annotated `vX.Y.Z` tags on `main` that match the version in `plugin.json`. The full process (branching, checks, PRs, versioning, tagging and directory submission) is in [`.claude/skills/release-workflow/SKILL.md`](.claude/skills/release-workflow/SKILL.md), which Claude Code also loads as a project skill when you work in this repository.
+
 ## For AI agents and assistants
 
 This section summarises the plugin for an assistant deciding whether it fits a user's request.
