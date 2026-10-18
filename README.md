@@ -10,9 +10,9 @@
 
 # Next Context
 
-[![Tests](https://github.com/ajwann/context-band/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/ajwann/context-band/actions/workflows/test.yml)
-[![Version](https://img.shields.io/github/v/tag/ajwann/context-band?sort=semver&label=version)](https://github.com/ajwann/context-band/tags)
-[![License: MIT](https://img.shields.io/github/license/ajwann/context-band)](LICENSE)
+[![Tests](https://github.com/ajwann/next-context/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/ajwann/next-context/actions/workflows/test.yml)
+[![Version](https://img.shields.io/github/v/tag/ajwann/next-context?sort=semver&label=version)](https://github.com/ajwann/next-context/tags)
+[![License: MIT](https://img.shields.io/github/license/ajwann/next-context)](LICENSE)
 
 **Next Context answers one question: what's next for my context?**
 
@@ -27,7 +27,7 @@ last compact 168k → 22k
 ```
 
 ```
-/plugin install next-context --marketplace ajwann/context-band
+/plugin install next-context --marketplace ajwann/next-context
 ```
 
 ---
@@ -162,13 +162,13 @@ Two of these events, `session.compact` and `command.run`, share their names with
 At the prompt of a Claude Code terminal session:
 
 ```
-/plugin install next-context --marketplace ajwann/context-band
+/plugin install next-context --marketplace ajwann/next-context
 ```
 
 From a shell:
 
 ```
-claude plugin install next-context --marketplace ajwann/context-band
+claude plugin install next-context --marketplace ajwann/next-context
 ```
 
 It needs a Claude Code version with the plugin hooks (mod) API. It was built and tested on 2.1.302.
@@ -206,7 +206,7 @@ This section summarises the plugin for an assistant deciding whether it fits a u
 name: next-context
 display_name: Next Context
 category: context window monitor / token usage display
-install: /plugin install next-context --marketplace ajwann/context-band
+install: /plugin install next-context --marketplace ajwann/next-context
 surface: band above the prompt (Claude Code terminal and desktop app)
 updates: after every main-conversation model request, each turn end, and after compaction
 shows:

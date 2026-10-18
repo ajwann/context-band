@@ -1,14 +1,14 @@
 {
   "name": "next-context",
   "displayName": "Next Context",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Answers 'what's next for my context?' in a live band above the Claude Code prompt: turns until auto-compaction, overhead and MCP cost before the first message, growth per turn, and warnings at thresholds you set. All 16 items are configurable.",
   "author": {
     "name": "ajwann"
   },
   "license": "MIT",
-  "homepage": "https://github.com/ajwann/context-band",
-  "repository": "https://github.com/ajwann/context-band",
+  "homepage": "https://github.com/ajwann/next-context",
+  "repository": "https://github.com/ajwann/next-context",
   "keywords": [
     "context",
     "context-window",
@@ -21,9 +21,9 @@
     "above-prompt"
   ],
   "icon": "./icon.png",
-  "documentationUrl": "https://github.com/ajwann/context-band#readme",
-  "supportUrl": "https://github.com/ajwann/context-band/issues",
-  "privacyPolicyUrl": "https://github.com/ajwann/context-band/blob/main/PRIVACY.md",
+  "documentationUrl": "https://github.com/ajwann/next-context#readme",
+  "supportUrl": "https://github.com/ajwann/next-context/issues",
+  "privacyPolicyUrl": "https://github.com/ajwann/next-context/blob/main/PRIVACY.md",
   "userConfig": {
     "showBar": {
       "type": "boolean",

@@ -22,4 +22,4 @@ Nothing. It makes no network requests, runs no programs, and makes no API calls.
 
 ## Contact
 
-Questions about this policy: open an issue at https://github.com/ajwann/context-band/issues.
+Questions about this policy: open an issue at https://github.com/ajwann/next-context/issues.
