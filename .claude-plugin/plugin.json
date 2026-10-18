@@ -1,7 +1,7 @@
 {
   "name": "context-band",
   "displayName": "Context Band",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Live context-window monitor above the Claude Code prompt that tells you when to compact: turns until auto-compaction, overhead and MCP cost before the first message, growth per turn, and warnings at thresholds you set. All 16 items are configurable.",
   "author": {
     "name": "ajwann"
