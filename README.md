@@ -1,3 +1,12 @@
+```text
+    .---.
+   / .-. \
+  | |   \_\>
+  | |
+   \ \______________________________________________________
+    \______________________________________________________/
+```
+
 # Context Band
 
 [![Tests](https://github.com/ajwann/context-band/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/ajwann/context-band/actions/workflows/test.yml)
