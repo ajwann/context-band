@@ -206,3 +206,39 @@ test('rows wrap whole data points rather than truncating on a narrow terminal', 
   expect(await ui.find({ type: 'Text', text: /Free space 123k/ })).toBeDefined()
   await ui.unmount()
 })
+
+test('/context-band <item> on|off writes that item\'s option', async ($, on) => {
+  const writes: { key: string; value: unknown }[] = []
+  on('config.set', (_, e) => {
+    writes.push({ key: e.key, value: e.value })
+    return { value: e.value }
+  })
+
+  const done = await $.command.run({ command: 'context-band', args: 'cost on', ...RUN })
+  expect(writes).toEqual([{ key: 'context-band.showCost', value: true }])
+  expect(JSON.stringify(done)).toMatch(/cost on/)
+
+  const bad = await $.command.run({ command: 'context-band', args: 'cost maybe', ...RUN })
+  expect(JSON.stringify(bad)).toMatch(/Usage: \/context-band cost on\|off/)
+  const unknown = await $.command.run({ command: 'context-band', args: 'nonsense', ...RUN })
+  expect(JSON.stringify(unknown)).toMatch(/Unknown item/)
+  expect(writes.length).toBe(1)
+})
+
+test('a compaction shows its before and after, and growth starts over', async ($, on) => {
+  let tokens = 40_000
+  on('session.usage', () => ({ value: { ...USAGE, context: { ...USAGE.context, tokens } } }))
+  on('turn.start', (_, e) => ({ turnId: e.turnId }))
+  on('turn.complete', () => ({ text: 'ok' }))
+  const summary = [{ role: 'user' as const, text: 'summary', toolUses: [] }]
+  on('session.compact', () => ({ messages: summary, tokensBefore: 168_000, tokensAfter: 22_000 }))
+  await $.turn.start({ text: 'hi', turnId: 't1' })
+  tokens = 44_000
+  await $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
+  await $.session.compact({ trigger: 'auto', messages: summary })
+
+  const ui = await $.ui.mount({ plugin: 'context-band', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  expect(await ui.find({ type: 'Text', text: /last compact 168k → 22k/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /last turn/ })).toBeUndefined()
+  await ui.unmount()
+})
