@@ -353,9 +353,11 @@ export const register: Register = (on, options) => {
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    // Whatever other mods and the host draw here stays, under the band.
+    const below = await next(e)
     const snap = await read($, snapshot)
     if (e.props.hasSurvey || snap === null || (await read($, isHidden))) {
-      return next(e)
+      return below
     }
 
     const { Box, Text } = $.ui.resolve(e)
@@ -372,7 +374,7 @@ export const register: Register = (on, options) => {
     ).slice(0, Math.max(1, e.props.maxRows))
     const barWidth = Math.max(10, Math.min(30, Math.floor(e.props.bodyColumns / 4)))
     const segments = current.bar ? barSegments(snap.rows, snap.max, barWidth) : []
-    if (lines.length === 0 && segments.length === 0) return next(e)
+    if (lines.length === 0 && segments.length === 0) return below
 
     // Each chunk is one Text in a wrapping row: a narrow terminal moves whole
     // data points to the next row, and a chunk wider than the row wraps itself.
@@ -406,6 +408,7 @@ export const register: Register = (on, options) => {
       <Box flexDirection="column">
         {drawLine(lines[0] ?? [], 0, segments.length > 0 ? bar : undefined)}
         {lines.slice(1).map((line, n) => drawLine(line, n + 1))}
+        {below}
       </Box>
     )
   })

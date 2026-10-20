@@ -153,7 +153,7 @@ Two of these events, `session.compact` and `command.run`, share their names with
 | `turn.complete` | Takes a reading, records the turn's growth and the turn count, and shows the warning toast if a threshold was crossed |
 | `session.compact` | Observes a finished compaction: records the context size before and after it, and starts the growth figures over. The compaction itself passes through untouched |
 | `command.run` (`next-context`) | Answers `/next-context`, `list`, `show`, `hide` and `<item> on\|off` (a session-only toggle); runs for no other command |
-| `ui.render` (`AbovePrompt`) | Draws the band above the prompt; it steps aside while a survey is shown |
+| `ui.render` (`AbovePrompt`) | Draws the band above the prompt, keeping whatever other mods draw there underneath it; the band steps aside while a survey is shown |
 
 **Caveats:** figures are estimates and can differ slightly from a full `/context` count. The band appears as soon as Claude Code has a context reading for the session. Growth, the trend and turns-to-compact appear from the second turn, since the first turn has nothing to compare against, and the projection assumes your recent pace continues. In organizations that manage Claude Code centrally, the refresh after compaction runs only for plugins the organization allows, so the "last compact" readout won't appear there; the band still updates at the next turn.
 

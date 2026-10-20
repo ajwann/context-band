@@ -1,7 +1,7 @@
 {
   "name": "next-context",
   "displayName": "Next Context",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Answers 'what's next for my context?' in a live band above the Claude Code prompt: turns until auto-compaction, overhead and MCP cost before the first message, growth per turn, and warnings at thresholds you set. All 16 items are configurable.",
   "author": {
     "name": "ajwann"
