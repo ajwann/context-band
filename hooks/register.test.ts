@@ -142,7 +142,13 @@ test('the band shows the live figures and hides on command', async ($, on) => {
   on('session.usage', () => ({ value: { ...USAGE, context: { ...USAGE.context, tokens } } }))
   on('turn.start', (_, e) => ({ turnId: e.turnId }))
   on('turn.complete', () => ({ text: 'ok' }))
-  on('ui.render', () => ({ type: 'Box', props: {}, children: [] }))
+  on('ui.render', () => ({ type: 'Text', props: {}, children: ['SIBLING'] }))
+
+  const before = await $.ui.mount({ plugin: 'next-context', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
+  expect(await before.find({ type: 'Text', text: /SIBLING/ })).toBeDefined()
+  expect(await before.find({ type: 'Text', text: /200k/ })).toBeUndefined()
+  await before.unmount()
+
   await $.turn.start({ text: 'hi', turnId: 't1' })
   tokens = 44_000
   await $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
@@ -156,6 +162,7 @@ test('the band shows the live figures and hides on command', async ($, on) => {
     expect(await ui.find({ type: 'Text', text: /MCP 12k \(github 8\.0k\)/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /Messages 29k/ })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: /1\.50/ })).toBeUndefined()
+    expect(await ui.find({ type: 'Text', text: /SIBLING/ })).toBeDefined()
     await ui.unmount()
 
     const survey = await $.ui.mount({
@@ -165,6 +172,7 @@ test('the band shows the live figures and hides on command', async ($, on) => {
       props: { ...PROPS, hasSurvey: true },
     })
     expect(await survey.find({ type: 'Text', text: /200k/ })).toBeUndefined()
+    expect(await survey.find({ type: 'Text', text: /SIBLING/ })).toBeDefined()
     await survey.unmount()
   }
 
@@ -174,6 +182,7 @@ test('the band shows the live figures and hides on command', async ($, on) => {
   await $.command.run({ command: 'next-context', args: '', ...RUN })
   const hidden = await $.ui.mount({ plugin: 'next-context', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
   expect(await hidden.find({ type: 'Text', text: /200k/ })).toBeUndefined()
+  expect(await hidden.find({ type: 'Text', text: /SIBLING/ })).toBeDefined()
   await hidden.unmount()
 })
 
@@ -183,6 +192,7 @@ test(
   async ($, on) => {
     on('session.usage', () => ({ value: USAGE }))
     on('turn.complete', () => ({ text: 'ok' }))
+    on('ui.render', () => ({ type: 'Box', props: {}, children: [] }))
     await $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
 
     const ui = await $.ui.mount({ plugin: 'next-context', surface: 'terminal', component: 'AbovePrompt', props: PROPS })
@@ -197,6 +207,7 @@ test(
 test('rows wrap whole data points rather than truncating on a narrow terminal', async ($, on) => {
   on('session.usage', () => ({ value: USAGE }))
   on('turn.complete', () => ({ text: 'ok' }))
+  on('ui.render', () => ({ type: 'Box', props: {}, children: [] }))
   await $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
 
   const ui = await $.ui.mount({ plugin: 'next-context', surface: 'terminal', component: 'AbovePrompt', props: { ...PROPS, bodyColumns: 40 } })
@@ -210,6 +221,7 @@ test('rows wrap whole data points rather than truncating on a narrow terminal', 
 test('/next-context <item> on|off switches an item for this session', async ($, on) => {
   on('session.usage', () => ({ value: USAGE }))
   on('turn.complete', () => ({ text: 'ok' }))
+  on('ui.render', () => ({ type: 'Box', props: {}, children: [] }))
   await $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
 
   const done = await $.command.run({ command: 'next-context', args: 'cost on', ...RUN })
@@ -236,6 +248,7 @@ test('a compaction shows its before and after, and growth starts over', async ($
   on('session.usage', () => ({ value: { ...USAGE, context: { ...USAGE.context, tokens } } }))
   on('turn.start', (_, e) => ({ turnId: e.turnId }))
   on('turn.complete', () => ({ text: 'ok' }))
+  on('ui.render', () => ({ type: 'Box', props: {}, children: [] }))
   const summary = [{ role: 'user' as const, text: 'summary', toolUses: [] }]
   on('session.compact', () => ({ messages: summary, tokensBefore: 168_000, tokensAfter: 22_000 }))
   await $.turn.start({ text: 'hi', turnId: 't1' })
@@ -254,6 +267,7 @@ test('the session\'s first turn counts, though it has no growth to show', { opti
   on('session.usage', () => ({ value: { ...USAGE, context: { ...USAGE.context, tokens } } }))
   on('turn.start', (_, e) => ({ turnId: e.turnId }))
   on('turn.complete', () => ({ text: 'ok' }))
+  on('ui.render', () => ({ type: 'Box', props: {}, children: [] }))
   const turn = async (id: string, after: number) => {
     await $.turn.start({ text: 'hi', turnId: id })
     tokens = after
